@@ -34,7 +34,7 @@ export default function Home() {
     updateEvent,
   } = useEventManager();
 
-  const [activeTab, setActiveTab] = useState<TabType>("players");
+  const [activeTab, setActiveTab] = useState<TabType>("setup");
   const [editingPlayer, setEditingPlayer] = useState<string | null>(null);
 
   if (!event) {
