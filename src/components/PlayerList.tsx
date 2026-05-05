@@ -62,6 +62,13 @@ const PlayerList: React.FC<PlayerListProps> = ({
                     {player.values.location}
                   </div>
                 )}
+                {player.values.playerPhoto && (
+                  <div
+                    className={`text-xs mt-1 text-green-600 dark:text-green-400 font-medium`}
+                  >
+                    ✓ Photo added
+                  </div>
+                )}
               </div>
 
               <div className="flex gap-2 ml-4">

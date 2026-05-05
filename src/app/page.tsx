@@ -92,7 +92,7 @@ export default function Home() {
         <header
           className={`${themeClasses.panel} shadow-sm border-b border-slate-200 dark:border-slate-800`}
         >
-          <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4">
+          <div className="mx-auto px-4 sm:px-6 lg:px-8 py-4">
             <div className="flex justify-between items-center">
               <h1 className="text-2xl font-bold text-slate-950 dark:text-slate-100">
                 Player Card Generator
@@ -117,7 +117,7 @@ export default function Home() {
         <nav
           className={`${themeClasses.panel} border-b border-slate-200 dark:border-slate-800`}
         >
-          <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+          <div className="mx-auto px-4 sm:px-6 lg:px-8">
             <div className="flex space-x-8">
               {tabs.map((tab) => (
                 <button
@@ -138,7 +138,7 @@ export default function Home() {
         </nav>
 
         {/* Main Content */}
-        <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+        <main className="mx-auto px-4 sm:px-6 lg:px-8 py-8">
           {activeTab === "setup" && (
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
               {/* Left Column - Event Management */}
@@ -173,9 +173,41 @@ export default function Home() {
           )}
 
           {activeTab === "players" && (
-            <div className="grid grid-cols-1 xl:grid-cols-2 gap-8">
-              {/* Left Column - Player Management */}
-              <div className="space-y-6">
+            <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+              {/* Left Column - Player List (visible on desktop alongside form) */}
+              <div className="lg:order-1 space-y-4">
+                <div
+                  className={`${themeClasses.panel} rounded-lg shadow-md p-6 sticky top-20`}
+                >
+                  <h3 className="text-lg font-semibold mb-4 text-slate-950 dark:text-slate-100">
+                    Players ({event.players.length})
+                  </h3>
+                  <div className="max-h-96 overflow-y-auto">
+                    <PlayerList
+                      players={event.players}
+                      selectedPlayerId={selectedPlayerId}
+                      onSelectPlayer={(player) => {
+                        setSelectedPlayerId(player.id);
+                        setEditingPlayer(player.id);
+                      }}
+                      onDeletePlayer={deletePlayer}
+                      onDuplicatePlayer={duplicatePlayer}
+                    />
+                  </div>
+                  <button
+                    onClick={() => {
+                      setEditingPlayer(null);
+                      setSelectedPlayerId(null);
+                    }}
+                    className={`w-full px-3 py-2 rounded text-sm transition-colors ${themeClasses.button.primary}`}
+                  >
+                    + Add New Player
+                  </button>
+                </div>
+              </div>
+
+              {/* Middle Column - Player Management Form */}
+              <div className="lg:order-2 space-y-6">
                 <DynamicPlayerForm
                   player={
                     editingPlayer
@@ -191,33 +223,10 @@ export default function Home() {
                   fields={event.fields}
                   onImportPlayers={importPlayers}
                 />
-                {/* Middle Column - Player List */}
-                <div className="space-y-6">
-                  <PlayerList
-                    players={event.players}
-                    selectedPlayerId={selectedPlayerId}
-                    onSelectPlayer={(player) => {
-                      setSelectedPlayerId(player.id);
-                      setEditingPlayer(null);
-                    }}
-                    onDeletePlayer={deletePlayer}
-                    onDuplicatePlayer={duplicatePlayer}
-                  />
-                  {selectedPlayer && (
-                    <div className="flex gap-2">
-                      <button
-                        onClick={() => setEditingPlayer(selectedPlayer.id)}
-                        className={`px-3 py-1 rounded text-sm transition-colors ${themeClasses.button.primary}`}
-                      >
-                        Edit Selected Player
-                      </button>
-                    </div>
-                  )}
-                </div>
               </div>
 
               {/* Right Column - Card Preview and Export */}
-              <div className="space-y-6">
+              <div className="lg:order-3 space-y-6">
                 <div
                   className={`${themeClasses.panel} rounded-lg shadow-md p-6`}
                 >

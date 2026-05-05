@@ -40,7 +40,7 @@ export function parseCsvToPlayers(
         return;
       }
 
-      // Create a mapping for case-insensitive column access
+      // Create a mapping for case-insensitive column access using field labels
       const headerMap: Record<string, string> = {};
       headers.forEach((header) => {
         headerMap[header.toLowerCase().trim()] = header;
@@ -50,7 +50,8 @@ export function parseCsvToPlayers(
         try {
           // Skip rows where all required fields are empty
           const isEmptyRow = requiredFields.every((field) => {
-            const actualHeader = headerMap[field.id.toLowerCase()];
+            // Match on field label (what's in the CSV header) instead of field.id
+            const actualHeader = headerMap[field.label.toLowerCase().trim()];
             return (
               !row[actualHeader] || String(row[actualHeader]).trim() === ""
             );
@@ -63,7 +64,14 @@ export function parseCsvToPlayers(
           const playerValues: Record<string, string> = {};
 
           fields.forEach((field) => {
-            const actualHeader = headerMap[field.id.toLowerCase()];
+            // Skip image fields in CSV import - they require manual upload
+            if (field.type === "image") {
+              playerValues[field.id] = "";
+              return;
+            }
+
+            // Match on field label (what's in the CSV header) instead of field.id
+            const actualHeader = headerMap[field.label.toLowerCase().trim()];
             let value = String(row[actualHeader] || "").trim();
 
             // Handle special cases
