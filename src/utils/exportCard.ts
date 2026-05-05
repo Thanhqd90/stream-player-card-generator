@@ -11,7 +11,8 @@ export async function exportCardAsPng(
     const dataUrl = await toPng(element, {
       width: template.width,
       height: template.height,
-      backgroundColor: "#ffffff",
+      cacheBust: true,
+      pixelRatio: 2,
     });
 
     const link = document.createElement("a");
@@ -31,7 +32,8 @@ export async function exportCardAsPngDataUrl(
     return await toPng(element, {
       width: template.width,
       height: template.height,
-      backgroundColor: "#ffffff",
+      cacheBust: true,
+      pixelRatio: 2,
     });
   } catch (error) {
     throw new Error(`Failed to generate PNG data URL: ${error}`);

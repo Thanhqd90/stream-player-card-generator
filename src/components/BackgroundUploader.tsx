@@ -1,5 +1,9 @@
-import React, { useRef } from "react";
+import React, { useRef, useState } from "react";
 import { themeClasses } from "../utils/themeClasses";
+import {
+  compressImageDataUrl,
+  getDataUrlSizeKB,
+} from "../utils/imageCompression";
 
 interface BackgroundUploaderProps {
   backgroundImage?: string;
@@ -11,8 +15,11 @@ const BackgroundUploader: React.FC<BackgroundUploaderProps> = ({
   onBackgroundChange,
 }) => {
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const [isCompressing, setIsCompressing] = useState(false);
 
-  const handleFileSelect = (event: React.ChangeEvent<HTMLInputElement>) => {
+  const handleFileSelect = async (
+    event: React.ChangeEvent<HTMLInputElement>,
+  ) => {
     const file = event.target.files?.[0];
     if (!file) return;
 
@@ -28,10 +35,40 @@ const BackgroundUploader: React.FC<BackgroundUploaderProps> = ({
       return;
     }
 
+    setIsCompressing(true);
+
     const reader = new FileReader();
-    reader.onload = (e) => {
-      const result = e.target?.result as string;
-      onBackgroundChange(result);
+    reader.onload = async (e) => {
+      try {
+        const originalDataUrl = e.target?.result as string;
+        const originalSizeKB = getDataUrlSizeKB(originalDataUrl);
+
+        // Compress the image
+        const compressedDataUrl = await compressImageDataUrl(
+          originalDataUrl,
+          1200, // max width
+          1200, // max height
+          0.7, // quality (0-1, lower = more compression)
+        );
+
+        const compressedSizeKB = getDataUrlSizeKB(compressedDataUrl);
+        const compressionRatio = (
+          (1 - compressedSizeKB / originalSizeKB) *
+          100
+        ).toFixed(0);
+
+        console.log(
+          `Image compressed: ${originalSizeKB}KB → ${compressedSizeKB}KB (${compressionRatio}% reduction)`,
+        );
+
+        onBackgroundChange(compressedDataUrl);
+      } catch (error) {
+        alert(
+          `Failed to compress image: ${error instanceof Error ? error.message : "Unknown error"}`,
+        );
+      } finally {
+        setIsCompressing(false);
+      }
     };
     reader.readAsDataURL(file);
   };
@@ -80,18 +117,25 @@ const BackgroundUploader: React.FC<BackgroundUploaderProps> = ({
             type="file"
             accept="image/*"
             onChange={handleFileSelect}
+            disabled={isCompressing}
             className="hidden"
           />
           <button
             onClick={() => fileInputRef.current?.click()}
-            className={`px-4 py-2 rounded hover:bg-blue-700 mr-2 transition-colors ${themeClasses.button.primary}`}
+            disabled={isCompressing}
+            className={`px-4 py-2 rounded hover:bg-blue-700 mr-2 transition-colors disabled:opacity-50 disabled:cursor-not-allowed ${themeClasses.button.primary}`}
           >
-            {backgroundImage ? "Change Background" : "Upload Background"}
+            {isCompressing
+              ? "Compressing..."
+              : backgroundImage
+                ? "Change Background"
+                : "Upload Background"}
           </button>
           {backgroundImage && (
             <button
               onClick={handleRemove}
-              className={`px-4 py-2 rounded transition-colors ${themeClasses.button.secondary}`}
+              disabled={isCompressing}
+              className={`px-4 py-2 rounded transition-colors disabled:opacity-50 disabled:cursor-not-allowed ${themeClasses.button.secondary}`}
             >
               Remove Background
             </button>
@@ -100,7 +144,7 @@ const BackgroundUploader: React.FC<BackgroundUploaderProps> = ({
 
         <div className={`text-sm ${themeClasses.muted}`}>
           <p>Supported formats: JPG, PNG, GIF, WebP</p>
-          <p>Maximum file size: 5MB</p>
+          <p>Maximum file size: 5MB (will be compressed for storage)</p>
           <p>The background will be scaled to fit the card dimensions.</p>
         </div>
       </div>

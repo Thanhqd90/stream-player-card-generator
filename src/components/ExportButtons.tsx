@@ -141,30 +141,38 @@ const ExportButtons: React.FC<ExportButtonsProps> = ({
         container.style.top = "-9999px";
         container.style.width = `${template.width}px`;
         container.style.height = `${template.height}px`;
+        container.style.visibility = "hidden";
+        container.style.pointerEvents = "none";
 
         // Use React to render the PlayerCard component
         const root = document.createElement("div");
         root.style.width = `${template.width}px`;
         root.style.height = `${template.height}px`;
+        root.style.visibility = "visible";
 
         // We'll render the card content directly since we can't easily use ReactDOM in this context
         // This is a compromise for client-side only functionality
-        const backgroundStyle = template.backgroundImage
-          ? `background-image: url(${template.backgroundImage}); background-size: cover; background-position: center;`
-          : "background: linear-gradient(to bottom right, #111827, #1f2937);";
+        const cardDiv = document.createElement("div");
+        cardDiv.style.color = "white";
+        cardDiv.style.borderRadius = "8px";
+        cardDiv.style.boxShadow = "0 25px 50px -12px rgba(0, 0, 0, 0.25)";
+        cardDiv.style.overflow = "hidden";
+        cardDiv.style.width = `${template.width}px`;
+        cardDiv.style.height = `${template.height}px`;
+        cardDiv.style.fontFamily = "system-ui, -apple-system, sans-serif";
+        cardDiv.style.position = "relative";
+        cardDiv.style.backgroundSize = "cover";
+        cardDiv.style.backgroundPosition = "center";
 
-        root.innerHTML = `
-          <div style="
-            ${backgroundStyle}
-            color: white;
-            border-radius: 8px;
-            box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.25);
-            overflow: hidden;
-            width: ${template.width}px;
-            height: ${template.height}px;
-            font-family: system-ui, -apple-system, sans-serif;
-            position: relative;
-          ">
+        // Set background separately to handle data URLs properly
+        if (template.backgroundImage) {
+          cardDiv.style.backgroundImage = `url(${template.backgroundImage})`;
+        } else {
+          cardDiv.style.background =
+            "linear-gradient(to bottom right, #111827, #1f2937)";
+        }
+
+        const innerHtml = `
             ${template.elements
               .filter((el) => el.visible)
               .map((el) => {
@@ -220,9 +228,10 @@ const ExportButtons: React.FC<ExportButtonsProps> = ({
                 ">${displayText.replace(/</g, "&lt;").replace(/>/g, "&gt;")}</div>`;
               })
               .join("")}
-          </div>
         `;
 
+        cardDiv.innerHTML = innerHtml;
+        root.appendChild(cardDiv);
         container.appendChild(root);
         document.body.appendChild(container);
         cardElements.push(container);
@@ -234,6 +243,8 @@ const ExportButtons: React.FC<ExportButtonsProps> = ({
         const cardElement = cardElements[i];
 
         try {
+          // Ensure the card is fully rendered before converting to PNG
+          await new Promise((resolve) => setTimeout(resolve, 100));
           const dataUrl = await exportCardAsPngDataUrl(cardElement, template);
           const base64Data = dataUrl.split(",")[1];
           const fileName = generatePlayerCardFileName(
@@ -275,14 +286,22 @@ const ExportButtons: React.FC<ExportButtonsProps> = ({
 
       <div className="space-y-4">
         {/* Hidden card for single export */}
-        <div
-          ref={cardRef}
-          style={{ position: "absolute", left: "-9999px", top: "-9999px" }}
-        >
-          {selectedPlayer && (
-            <PlayerCard player={selectedPlayer} template={template} />
-          )}
-        </div>
+        {selectedPlayer && (
+          <div
+            style={{
+              position: "fixed",
+              left: "-10000px",
+              top: "-10000px",
+              pointerEvents: "none",
+            }}
+          >
+            <PlayerCard
+              ref={cardRef}
+              player={selectedPlayer}
+              template={template}
+            />
+          </div>
+        )}
 
         {/* Export Single Card */}
         <div>
