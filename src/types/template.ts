@@ -52,5 +52,5 @@ export interface TemplateElement {
 
   // Image styles (image)
   objectFit?: "cover" | "contain" | "fill";
-  objectPosition?: string;
+  objectPosition?: "center";
 }
