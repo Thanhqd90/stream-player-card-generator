@@ -24,20 +24,12 @@ const PlayerCard = forwardRef<HTMLDivElement, PlayerCardProps>(
         }}
       >
         {template.elements
-          .filter((element) => element.visible)
+          .filter((element) => element.visible !== false)
+          .sort((a, b) => (a.zIndex ?? 0) - (b.zIndex ?? 0))
           .map((element) => {
             const value = element.fieldId
               ? player.values[element.fieldId] || ""
               : "";
-
-            // Handle static text elements
-            let displayText = value;
-            if (!element.fieldId) {
-              if (element.id.includes("location")) displayText = "Location";
-              else if (element.id.includes("achievements"))
-                displayText = "Achievements";
-              else if (element.id.includes("funfact")) displayText = "Fun Fact";
-            }
 
             const style: React.CSSProperties = {
               position: "absolute",
@@ -45,16 +37,22 @@ const PlayerCard = forwardRef<HTMLDivElement, PlayerCardProps>(
               top: element.y,
               width: element.width,
               height: element.height,
+              zIndex: element.zIndex ?? 0,
+              opacity: element.opacity,
               fontSize: element.fontSize,
               color: element.color,
               backgroundColor: element.backgroundColor,
               borderColor: element.borderColor,
               borderWidth: element.borderWidth,
+              borderStyle: element.borderStyle || "solid",
               borderRadius: element.borderRadius,
               padding: element.padding,
               fontWeight: element.fontWeight,
+              fontStyle: element.fontStyle || "normal",
               textAlign: element.textAlign,
               lineHeight: element.lineHeight,
+              letterSpacing: element.letterSpacing,
+              textTransform: element.textTransform,
               fontFamily: element.fontFamily,
               display: "flex",
               alignItems: element.type === "image" ? "center" : "flex-start",
@@ -64,16 +62,20 @@ const PlayerCard = forwardRef<HTMLDivElement, PlayerCardProps>(
                   : element.textAlign === "right"
                     ? "flex-end"
                     : "flex-start",
+              overflow: "hidden",
             };
 
-            if (element.type === "image" && value) {
+            if (element.type === "image") {
               return (
                 <img
                   key={element.id}
                   src={value}
                   alt={element.fieldId}
-                  style={style}
-                  className="object-cover"
+                  style={{
+                    ...style,
+                    objectFit: element.objectFit || "cover",
+                    objectPosition: element.objectPosition || "center",
+                  }}
                 />
               );
             }
@@ -86,7 +88,7 @@ const PlayerCard = forwardRef<HTMLDivElement, PlayerCardProps>(
                   element.type === "textarea" ? "whitespace-pre-line" : ""
                 }
               >
-                {displayText}
+                {value}
               </div>
             );
           })}
