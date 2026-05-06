@@ -7,6 +7,30 @@ interface PlayerCardProps {
   template: CardTemplate;
 }
 
+const getColorWithOpacity = (color?: string, opacity?: number) => {
+  if (!color) return undefined;
+  const alpha = opacity ?? 1;
+  if (alpha >= 1) return color;
+  const clean = color.replace("#", "");
+  let r = 0;
+  let g = 0;
+  let b = 0;
+
+  if (/^[0-9A-Fa-f]{6}$/.test(clean)) {
+    r = parseInt(clean.slice(0, 2), 16);
+    g = parseInt(clean.slice(2, 4), 16);
+    b = parseInt(clean.slice(4, 6), 16);
+  } else if (/^[0-9A-Fa-f]{3}$/.test(clean)) {
+    r = parseInt(clean[0] + clean[0], 16);
+    g = parseInt(clean[1] + clean[1], 16);
+    b = parseInt(clean[2] + clean[2], 16);
+  } else {
+    return color;
+  }
+
+  return `rgba(${r}, ${g}, ${b}, ${alpha})`;
+};
+
 const PlayerCard = forwardRef<HTMLDivElement, PlayerCardProps>(
   ({ player, template }, ref) => {
     return (
@@ -27,9 +51,18 @@ const PlayerCard = forwardRef<HTMLDivElement, PlayerCardProps>(
           .filter((element) => element.visible !== false)
           .sort((a, b) => (a.zIndex ?? 0) - (b.zIndex ?? 0))
           .map((element) => {
-            const value = element.fieldId
+            const rawValue = element.fieldId
               ? player.values[element.fieldId] || ""
               : "";
+            const displayValue = element.fieldId
+              ? rawValue
+              : element.id.includes("location")
+                ? "Location"
+                : element.id.includes("achievements")
+                  ? "Achievements"
+                  : element.id.includes("funfact")
+                    ? "Fun Fact"
+                    : rawValue;
 
             const style: React.CSSProperties = {
               position: "absolute",
@@ -41,7 +74,10 @@ const PlayerCard = forwardRef<HTMLDivElement, PlayerCardProps>(
               opacity: element.opacity,
               fontSize: element.fontSize,
               color: element.color,
-              backgroundColor: element.backgroundColor,
+              backgroundColor: getColorWithOpacity(
+                element.backgroundColor,
+                element.backgroundOpacity,
+              ),
               borderColor: element.borderColor,
               borderWidth: element.borderWidth,
               borderStyle: element.borderStyle || "solid",
@@ -69,7 +105,7 @@ const PlayerCard = forwardRef<HTMLDivElement, PlayerCardProps>(
               return (
                 <img
                   key={element.id}
-                  src={value}
+                  src={rawValue}
                   alt={element.fieldId}
                   style={{
                     ...style,
@@ -88,7 +124,7 @@ const PlayerCard = forwardRef<HTMLDivElement, PlayerCardProps>(
                   element.type === "textarea" ? "whitespace-pre-line" : ""
                 }
               >
-                {value}
+                {displayValue}
               </div>
             );
           })}

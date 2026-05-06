@@ -66,6 +66,30 @@ const TemplateEditor: React.FC<TemplateEditorProps> = ({
     };
   };
 
+  const applyOpacityToColor = (color?: string, opacity?: number) => {
+    if (!color) return undefined;
+    const alpha = opacity ?? 1;
+    if (alpha >= 1) return color;
+    const clean = color.replace("#", "");
+    let r = 0;
+    let g = 0;
+    let b = 0;
+
+    if (/^[0-9A-Fa-f]{6}$/.test(clean)) {
+      r = parseInt(clean.slice(0, 2), 16);
+      g = parseInt(clean.slice(2, 4), 16);
+      b = parseInt(clean.slice(4, 6), 16);
+    } else if (/^[0-9A-Fa-f]{3}$/.test(clean)) {
+      r = parseInt(clean[0] + clean[0], 16);
+      g = parseInt(clean[1] + clean[1], 16);
+      b = parseInt(clean[2] + clean[2], 16);
+    } else {
+      return color;
+    }
+
+    return `rgba(${r}, ${g}, ${b}, ${alpha})`;
+  };
+
   const handleAddElement = (fieldId: string) => {
     const field = fields.find((f) => f.id === fieldId);
     if (!field) return;
@@ -136,6 +160,36 @@ const TemplateEditor: React.FC<TemplateEditorProps> = ({
       setSelectedElementId(null);
     }
   };
+
+  const handleDuplicateElement = useCallback(() => {
+    if (!selectedElement) return;
+    const duplicate: TemplateElement = {
+      ...selectedElement,
+      id: `${selectedElement.fieldId || selectedElement.id}-duplicate-${Date.now()}`,
+      x: selectedElement.x + 10,
+      y: selectedElement.y + 10,
+      zIndex: (selectedElement.zIndex ?? 0) + 1,
+    };
+    onTemplateChange({
+      ...template,
+      elements: [...template.elements, duplicate],
+    });
+    setSelectedElementId(duplicate.id);
+  }, [selectedElement, template, onTemplateChange]);
+
+  const handleBringForward = useCallback(() => {
+    if (!selectedElement) return;
+    handleElementUpdate(selectedElement.id, {
+      zIndex: (selectedElement.zIndex ?? 0) + 1,
+    });
+  }, [selectedElement, handleElementUpdate]);
+
+  const handleSendBackward = useCallback(() => {
+    if (!selectedElement) return;
+    handleElementUpdate(selectedElement.id, {
+      zIndex: (selectedElement.zIndex ?? 0) - 1,
+    });
+  }, [selectedElement, handleElementUpdate]);
 
   // Handle canvas click to deselect
   const handleCanvasClick = useCallback((e: React.MouseEvent) => {
@@ -396,7 +450,6 @@ const TemplateEditor: React.FC<TemplateEditorProps> = ({
                       element.opacity !== undefined ? element.opacity : 1,
                     fontSize: element.fontSize,
                     color: element.color,
-                    backgroundColor: element.backgroundColor,
                     borderColor: element.borderColor,
                     borderWidth: element.borderWidth ? element.borderWidth : 0,
                     borderStyle: element.borderStyle || "solid",
@@ -409,6 +462,10 @@ const TemplateEditor: React.FC<TemplateEditorProps> = ({
                     letterSpacing: element.letterSpacing,
                     textTransform: element.textTransform || "none",
                     fontFamily: element.fontFamily,
+                    backgroundColor: applyOpacityToColor(
+                      element.backgroundColor,
+                      element.backgroundOpacity,
+                    ),
                   }}
                   onMouseDown={(e) => handleMouseDown(e, element.id)}
                   onClick={(e) => handleElementClick(e, element.id)}
@@ -1030,15 +1087,57 @@ const TemplateEditor: React.FC<TemplateEditorProps> = ({
                         <option value="fill">Fill</option>
                       </select>
                     </div>
+                    <div>
+                      <label
+                        className={`block text-xs font-medium mb-1 ${themeClasses.label}`}
+                      >
+                        Object Position
+                      </label>
+                      <select
+                        value={selectedElement.objectPosition || "center"}
+                        onChange={(e) =>
+                          handleElementUpdate(selectedElement.id, {
+                            objectPosition: e.target.value,
+                          })
+                        }
+                        className={`w-full border rounded px-2 py-1 text-sm ${themeClasses.input}`}
+                      >
+                        <option value="center">Center</option>
+                      </select>
+                    </div>
                   </div>
                 </div>
               )}
 
               {/* Actions */}
-              <div className="border-t pt-4 flex gap-2">
+              <div className="border-t pt-4 space-y-2">
+                <div className="grid grid-cols-3 gap-2">
+                  <button
+                    onClick={handleSendBackward}
+                    className={`px-3 py-2 rounded text-sm ${themeClasses.button.secondary}`}
+                    type="button"
+                  >
+                    Backward
+                  </button>
+                  <button
+                    onClick={handleDuplicateElement}
+                    className={`px-3 py-2 rounded text-sm ${themeClasses.button.secondary}`}
+                    type="button"
+                  >
+                    Duplicate
+                  </button>
+                  <button
+                    onClick={handleBringForward}
+                    className={`px-3 py-2 rounded text-sm ${themeClasses.button.secondary}`}
+                    type="button"
+                  >
+                    Forward
+                  </button>
+                </div>
                 <button
                   onClick={() => handleDeleteElement(selectedElement.id)}
-                  className={`flex-1 px-3 py-2 rounded transition-colors text-sm ${themeClasses.button.danger}`}
+                  className={`w-full px-3 py-2 rounded transition-colors text-sm ${themeClasses.button.danger}`}
+                  type="button"
                 >
                   Delete
                 </button>
