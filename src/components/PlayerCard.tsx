@@ -112,6 +112,10 @@ const PlayerCard = forwardRef<HTMLDivElement, PlayerCardProps>(
             };
 
             if (element.type === "image") {
+              if (!rawValue) {
+                return <div key={element.id} style={style} />;
+              }
+
               return (
                 <img
                   key={element.id}

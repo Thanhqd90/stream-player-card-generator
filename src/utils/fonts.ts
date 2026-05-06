@@ -58,6 +58,8 @@ export function updateImportedFontLinks(fonts: ImportedFont[]): void {
       link.rel = "stylesheet";
       link.href = font.url;
       link.type = "text/css";
+      link.crossOrigin = "anonymous";
+      link.referrerPolicy = "no-referrer";
       link.setAttribute(FONT_LINK_ATTR, font.url);
       head.appendChild(link);
     }
