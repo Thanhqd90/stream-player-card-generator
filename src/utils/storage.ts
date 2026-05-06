@@ -23,18 +23,21 @@ export function loadEventFromStorage(): SavedEvent | null {
     const parsed = JSON.parse(stored);
 
     // Check if this is an old format event (version 1 or missing version)
-    if (!parsed.version || parsed.version === 1) {
-      return migrateEventToVersion2(parsed);
+    if (!parsed.version || parsed.version < 3) {
+      return migrateEventToVersion3(parsed);
     }
 
-    return parsed;
+    return {
+      ...parsed,
+      fonts: Array.isArray(parsed.fonts) ? parsed.fonts : [],
+    };
   } catch (error) {
     console.error("Failed to load event from localStorage:", error);
     return null;
   }
 }
 
-function migrateEventToVersion2(oldEvent: any): SavedEvent {
+function migrateEventToVersion3(oldEvent: any): SavedEvent {
   // Create new event structure
   const newEvent = createDefaultEvent();
 
@@ -61,10 +64,17 @@ function migrateEventToVersion2(oldEvent: any): SavedEvent {
     },
   }));
 
-  // If there's a background image in the old template, preserve it
-  if (oldEvent.template?.backgroundImage) {
-    newEvent.template.backgroundImage = oldEvent.template.backgroundImage;
+  // Preserve old template if available
+  if (oldEvent.template && typeof oldEvent.template === "object") {
+    newEvent.template = {
+      ...newEvent.template,
+      ...oldEvent.template,
+      elements: oldEvent.template.elements || newEvent.template.elements,
+    };
   }
+
+  // Preserve imported fonts if present
+  newEvent.fonts = Array.isArray(oldEvent.fonts) ? oldEvent.fonts : [];
 
   return newEvent;
 }

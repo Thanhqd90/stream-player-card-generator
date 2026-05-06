@@ -62,6 +62,11 @@ const EventImportExport: React.FC<EventImportExportProps> = ({
         );
       }
 
+      // Ensure imported fonts exist for older event versions
+      if (!Array.isArray(importedEvent.fonts)) {
+        (importedEvent as any).fonts = [];
+      }
+
       // Validate structure
       if (
         !Array.isArray(importedEvent.fields) ||
@@ -79,7 +84,7 @@ const EventImportExport: React.FC<EventImportExportProps> = ({
         throw new Error("Invalid event file: invalid template structure");
       }
 
-      onImportEvent(importedEvent);
+      onImportEvent(importedEvent as SavedEvent);
       setImportMessage("Event imported successfully!");
     } catch (error) {
       setImportMessage(

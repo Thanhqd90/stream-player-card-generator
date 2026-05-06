@@ -117,6 +117,7 @@ const PlayerCard = forwardRef<HTMLDivElement, PlayerCardProps>(
                   key={element.id}
                   src={rawValue}
                   alt={element.fieldId}
+                  crossOrigin="anonymous"
                   style={{
                     ...style,
                     objectFit: element.objectFit || "cover",

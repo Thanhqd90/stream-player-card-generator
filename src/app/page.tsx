@@ -14,6 +14,7 @@ import ThemeToggle from "../components/ThemeToggle";
 import { ThemeProvider } from "../contexts/ThemeContext";
 import { themeClasses } from "../utils/themeClasses";
 import { useEventManager } from "../hooks/useEventManager";
+import { ensureImportedFontsLoaded } from "../utils/fonts";
 
 type TabType = "setup" | "template" | "players";
 
@@ -36,6 +37,14 @@ export default function Home() {
 
   const [activeTab, setActiveTab] = useState<TabType>("setup");
   const [editingPlayer, setEditingPlayer] = useState<string | null>(null);
+
+  React.useEffect(() => {
+    if (event?.fonts?.length) {
+      ensureImportedFontsLoaded(event.fonts).catch((error) => {
+        console.error("Failed to load imported fonts:", error);
+      });
+    }
+  }, [event?.fonts]);
 
   if (!event) {
     return (
@@ -168,7 +177,9 @@ export default function Home() {
             <TemplateEditor
               template={event.template}
               fields={event.fields}
+              fonts={event.fonts}
               onTemplateChange={handleTemplateChange}
+              onFontsChange={(fonts) => updateEvent({ fonts })}
             />
           )}
 

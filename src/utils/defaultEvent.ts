@@ -223,7 +223,7 @@ export function createDefaultEvent(): SavedEvent {
   };
 
   return {
-    version: 2, // Increment version for new structure
+    version: 3, // Increment version for new structure
     id: crypto.randomUUID(),
     name: "Untitled Event",
     createdAt: new Date().toISOString(),
@@ -231,5 +231,6 @@ export function createDefaultEvent(): SavedEvent {
     fields: defaultFields,
     template: defaultTemplate,
     players: [],
+    fonts: [],
   };
 }

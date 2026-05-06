@@ -1,12 +1,16 @@
 import React, { useState, useRef, useCallback, useEffect } from "react";
 import { CardTemplate, TemplateElement } from "../types/template";
 import { FieldDefinition } from "../types/player";
+import { ImportedFont } from "../types/event";
+import { BUILTIN_FONTS, isValidFontUrl } from "../utils/fonts";
 import { themeClasses } from "../utils/themeClasses";
 
 interface TemplateEditorProps {
   template: CardTemplate;
   fields: FieldDefinition[];
+  fonts: ImportedFont[];
   onTemplateChange: (template: CardTemplate) => void;
+  onFontsChange: (fonts: ImportedFont[]) => void;
 }
 
 type ResizeHandle = "nw" | "n" | "ne" | "w" | "e" | "sw" | "s" | "se";
@@ -32,18 +36,33 @@ interface ResizeState {
 const TemplateEditor: React.FC<TemplateEditorProps> = ({
   template,
   fields,
+  fonts,
   onTemplateChange,
+  onFontsChange,
 }) => {
   const [selectedElementId, setSelectedElementId] = useState<string | null>(
     null,
   );
   const [dragState, setDragState] = useState<DragState | null>(null);
   const [resizeState, setResizeState] = useState<ResizeState | null>(null);
+  const [fontName, setFontName] = useState("");
+  const [fontUrl, setFontUrl] = useState("");
+  const [fontManagerMessage, setFontManagerMessage] = useState<string | null>(
+    null,
+  );
   const canvasRef = useRef<HTMLDivElement>(null);
 
   const selectedElement = selectedElementId
     ? template.elements.find((e) => e.id === selectedElementId)
     : null;
+
+  const availableFontFamilies = Array.from(
+    new Set([
+      ...BUILTIN_FONTS,
+      ...fonts.map((font) => font.name),
+      ...(selectedElement?.fontFamily ? [selectedElement.fontFamily] : []),
+    ]),
+  );
 
   // Calculate canvas scale if it's scaled to fit
   const getCanvasScale = useCallback(() => {
@@ -186,6 +205,54 @@ const TemplateEditor: React.FC<TemplateEditorProps> = ({
     });
     setSelectedElementId(duplicate.id);
   }, [selectedElement, template, onTemplateChange]);
+
+  const handleAddFont = useCallback(() => {
+    const normalizedFontName = fontName.trim();
+    const normalizedFontUrl = fontUrl.trim();
+
+    if (!normalizedFontName || !normalizedFontUrl) {
+      setFontManagerMessage("Font name and URL are required.");
+      return;
+    }
+
+    if (!isValidFontUrl(normalizedFontUrl)) {
+      setFontManagerMessage(
+        "Please enter a valid Google Fonts or CSS font URL.",
+      );
+      return;
+    }
+
+    // Prevent duplicates by URL or font name
+    const duplicateFont = fonts.some(
+      (font) =>
+        font.url === normalizedFontUrl ||
+        font.name.toLowerCase() === normalizedFontName.toLowerCase(),
+    );
+
+    if (duplicateFont) {
+      setFontManagerMessage("This font is already imported.");
+      return;
+    }
+
+    onFontsChange([
+      ...fonts,
+      {
+        name: normalizedFontName,
+        url: normalizedFontUrl,
+      },
+    ]);
+    setFontName("");
+    setFontUrl("");
+    setFontManagerMessage("Imported font added successfully.");
+  }, [fontName, fontUrl, fonts, onFontsChange, template.elements]);
+
+  const handleRemoveFont = useCallback(
+    (fontUrlToRemove: string) => {
+      onFontsChange(fonts.filter((font) => font.url !== fontUrlToRemove));
+      setFontManagerMessage("Imported font removed.");
+    },
+    [fonts, onFontsChange],
+  );
 
   const handleBringForward = useCallback(() => {
     if (!selectedElement) return;
@@ -923,12 +990,11 @@ const TemplateEditor: React.FC<TemplateEditorProps> = ({
                         }
                         className={`w-full border rounded px-2 py-1 text-sm ${themeClasses.input}`}
                       >
-                        <option value="Arial">Arial</option>
-                        <option value="Helvetica">Helvetica</option>
-                        <option value="Times New Roman">Times New Roman</option>
-                        <option value="Courier New">Courier New</option>
-                        <option value="Georgia">Georgia</option>
-                        <option value="Verdana">Verdana</option>
+                        {availableFontFamilies.map((fontFamily) => (
+                          <option key={fontFamily} value={fontFamily}>
+                            {fontFamily}
+                          </option>
+                        ))}
                       </select>
                     </div>
                     <div>
@@ -1067,6 +1133,91 @@ const TemplateEditor: React.FC<TemplateEditorProps> = ({
                   </div>
                 </div>
               )}
+
+              {/* Font Manager */}
+              <div className="border-t pt-4">
+                <h5
+                  className={`text-xs font-semibold uppercase mb-3 ${themeClasses.muted}`}
+                >
+                  Font Manager
+                </h5>
+                <div className="space-y-3">
+                  <div className="grid grid-cols-2 gap-2">
+                    <div>
+                      <label
+                        className={`block text-xs font-medium mb-1 ${themeClasses.label}`}
+                      >
+                        Font Name
+                      </label>
+                      <input
+                        type="text"
+                        value={fontName}
+                        onChange={(e) => setFontName(e.target.value)}
+                        placeholder="Roboto"
+                        className={`w-full border rounded px-2 py-1 text-sm ${themeClasses.input}`}
+                      />
+                    </div>
+                    <div>
+                      <label
+                        className={`block text-xs font-medium mb-1 ${themeClasses.label}`}
+                      >
+                        Font CSS URL
+                      </label>
+                      <input
+                        type="url"
+                        value={fontUrl}
+                        onChange={(e) => setFontUrl(e.target.value)}
+                        placeholder="https://fonts.googleapis.com/css2?family=Roboto:wght@400;700&display=swap"
+                        className={`w-full border rounded px-2 py-1 text-sm ${themeClasses.input}`}
+                      />
+                    </div>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={handleAddFont}
+                    className={`w-full px-3 py-2 rounded text-sm ${themeClasses.button.primary}`}
+                  >
+                    Add Imported Font
+                  </button>
+                  {fontManagerMessage && (
+                    <div className="text-sm text-slate-700 dark:text-slate-200">
+                      {fontManagerMessage}
+                    </div>
+                  )}
+
+                  {fonts.length > 0 && (
+                    <div className="space-y-2">
+                      <div className="text-xs font-semibold uppercase tracking-wide text-slate-500 dark:text-slate-400">
+                        Imported Fonts
+                      </div>
+                      <div className="space-y-2">
+                        {fonts.map((font) => (
+                          <div
+                            key={font.url}
+                            className="flex items-center justify-between gap-3 rounded border border-slate-200 dark:border-slate-700 p-3"
+                          >
+                            <div>
+                              <div className="font-medium text-sm text-slate-900 dark:text-slate-100">
+                                {font.name}
+                              </div>
+                              <div className="text-xs text-slate-500 dark:text-slate-400 break-all">
+                                {font.url}
+                              </div>
+                            </div>
+                            <button
+                              type="button"
+                              onClick={() => handleRemoveFont(font.url)}
+                              className={`px-2 py-1 rounded text-xs ${themeClasses.button.danger}`}
+                            >
+                              Remove
+                            </button>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+                </div>
+              </div>
 
               {/* Image Controls */}
               {selectedElement.type === "image" && (

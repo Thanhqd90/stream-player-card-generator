@@ -19,6 +19,40 @@ interface ExportButtonsProps {
   event: SavedEvent;
 }
 
+const getColorWithOpacity = (color?: string, opacity?: number) => {
+  if (!color) return "transparent";
+  const alpha = opacity ?? 1;
+  const rgbaMatch = color.match(
+    /rgba?\((\d+),\s*(\d+),\s*(\d+)(?:,\s*([\d.]+))?\)/,
+  );
+  const hexMatch = color.match(/^#([A-Fa-f0-9]{3}|[A-Fa-f0-9]{6})$/);
+
+  if (rgbaMatch) {
+    const [, r, g, b] = rgbaMatch;
+    return `rgba(${r}, ${g}, ${b}, ${alpha})`;
+  }
+
+  if (alpha >= 1) return color;
+  if (!hexMatch) return color;
+
+  const clean = hexMatch[1];
+  let r = 0;
+  let g = 0;
+  let b = 0;
+
+  if (clean.length === 6) {
+    r = parseInt(clean.slice(0, 2), 16);
+    g = parseInt(clean.slice(2, 4), 16);
+    b = parseInt(clean.slice(4, 6), 16);
+  } else {
+    r = parseInt(clean[0] + clean[0], 16);
+    g = parseInt(clean[1] + clean[1], 16);
+    b = parseInt(clean[2] + clean[2], 16);
+  }
+
+  return `rgba(${r}, ${g}, ${b}, ${alpha})`;
+};
+
 const ExportButtons: React.FC<ExportButtonsProps> = ({
   selectedPlayer,
   players,
@@ -188,7 +222,7 @@ const ExportButtons: React.FC<ExportButtonsProps> = ({
                 }
 
                 if (el.type === "image" && value) {
-                  return `<img src="${value}" style="
+                  return `<img src="${value}" crossorigin="anonymous" style="
                     position: absolute;
                     left: ${el.x}px;
                     top: ${el.y}px;
@@ -207,7 +241,10 @@ const ExportButtons: React.FC<ExportButtonsProps> = ({
                   height: ${el.height}px;
                   font-size: ${el.fontSize || 16}px;
                   color: ${el.color || "#000000"};
-                  background-color: ${el.backgroundColor || "transparent"};
+                  background-color: ${getColorWithOpacity(
+                    el.backgroundColor,
+                    el.backgroundOpacity,
+                  )};
                   border: ${el.borderWidth || 0}px solid ${el.borderColor || "transparent"};
                   border-radius: ${el.borderRadius || 0}px;
                   padding: ${el.padding || 0}px;
