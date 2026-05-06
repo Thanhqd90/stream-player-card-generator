@@ -392,7 +392,8 @@ const TemplateEditor: React.FC<TemplateEditorProps> = ({
                     width: element.width,
                     height: element.height,
                     zIndex: element.zIndex ?? 0,
-                    opacity: element.opacity !== undefined ? element.opacity : 1,
+                    opacity:
+                      element.opacity !== undefined ? element.opacity : 1,
                     fontSize: element.fontSize,
                     color: element.color,
                     backgroundColor: element.backgroundColor,
@@ -485,12 +486,16 @@ const TemplateEditor: React.FC<TemplateEditorProps> = ({
 
               {/* Position & Dimensions */}
               <div className="border-t pt-4">
-                <h5 className={`text-xs font-semibold uppercase mb-3 ${themeClasses.muted}`}>
+                <h5
+                  className={`text-xs font-semibold uppercase mb-3 ${themeClasses.muted}`}
+                >
                   Position & Size
                 </h5>
                 <div className="grid grid-cols-2 gap-2">
                   <div>
-                    <label className={`block text-xs font-medium mb-1 ${themeClasses.label}`}>
+                    <label
+                      className={`block text-xs font-medium mb-1 ${themeClasses.label}`}
+                    >
                       X
                     </label>
                     <input
@@ -505,7 +510,9 @@ const TemplateEditor: React.FC<TemplateEditorProps> = ({
                     />
                   </div>
                   <div>
-                    <label className={`block text-xs font-medium mb-1 ${themeClasses.label}`}>
+                    <label
+                      className={`block text-xs font-medium mb-1 ${themeClasses.label}`}
+                    >
                       Y
                     </label>
                     <input
@@ -520,7 +527,9 @@ const TemplateEditor: React.FC<TemplateEditorProps> = ({
                     />
                   </div>
                   <div>
-                    <label className={`block text-xs font-medium mb-1 ${themeClasses.label}`}>
+                    <label
+                      className={`block text-xs font-medium mb-1 ${themeClasses.label}`}
+                    >
                       Width
                     </label>
                     <input
@@ -535,7 +544,9 @@ const TemplateEditor: React.FC<TemplateEditorProps> = ({
                     />
                   </div>
                   <div>
-                    <label className={`block text-xs font-medium mb-1 ${themeClasses.label}`}>
+                    <label
+                      className={`block text-xs font-medium mb-1 ${themeClasses.label}`}
+                    >
                       Height
                     </label>
                     <input
@@ -554,7 +565,9 @@ const TemplateEditor: React.FC<TemplateEditorProps> = ({
 
               {/* Visibility & Layering */}
               <div className="border-t pt-4">
-                <h5 className={`text-xs font-semibold uppercase mb-3 ${themeClasses.muted}`}>
+                <h5
+                  className={`text-xs font-semibold uppercase mb-3 ${themeClasses.muted}`}
+                >
                   Visibility & Layering
                 </h5>
                 <div className="space-y-2">
@@ -569,7 +582,10 @@ const TemplateEditor: React.FC<TemplateEditorProps> = ({
                         })
                       }
                     />
-                    <label htmlFor="visible" className={`text-sm ${themeClasses.label}`}>
+                    <label
+                      htmlFor="visible"
+                      className={`text-sm ${themeClasses.label}`}
+                    >
                       Visible
                     </label>
                   </div>
@@ -585,13 +601,18 @@ const TemplateEditor: React.FC<TemplateEditorProps> = ({
                         })
                       }
                     />
-                    <label htmlFor="locked" className={`text-sm ${themeClasses.label}`}>
+                    <label
+                      htmlFor="locked"
+                      className={`text-sm ${themeClasses.label}`}
+                    >
                       Locked
                     </label>
                   </div>
 
                   <div>
-                    <label className={`block text-xs font-medium mb-1 ${themeClasses.label}`}>
+                    <label
+                      className={`block text-xs font-medium mb-1 ${themeClasses.label}`}
+                    >
                       Z-Index
                     </label>
                     <input
@@ -607,8 +628,11 @@ const TemplateEditor: React.FC<TemplateEditorProps> = ({
                   </div>
 
                   <div>
-                    <label className={`block text-xs font-medium mb-1 ${themeClasses.label}`}>
-                      Opacity: {Math.round((selectedElement.opacity ?? 1) * 100)}%
+                    <label
+                      className={`block text-xs font-medium mb-1 ${themeClasses.label}`}
+                    >
+                      Opacity:{" "}
+                      {Math.round((selectedElement.opacity ?? 1) * 100)}%
                     </label>
                     <input
                       type="range"
@@ -629,12 +653,16 @@ const TemplateEditor: React.FC<TemplateEditorProps> = ({
 
               {/* Background */}
               <div className="border-t pt-4">
-                <h5 className={`text-xs font-semibold uppercase mb-3 ${themeClasses.muted}`}>
+                <h5
+                  className={`text-xs font-semibold uppercase mb-3 ${themeClasses.muted}`}
+                >
                   Background
                 </h5>
                 <div className="space-y-2">
                   <div>
-                    <label className={`block text-xs font-medium mb-1 ${themeClasses.label}`}>
+                    <label
+                      className={`block text-xs font-medium mb-1 ${themeClasses.label}`}
+                    >
                       Color
                     </label>
                     <input
@@ -649,8 +677,14 @@ const TemplateEditor: React.FC<TemplateEditorProps> = ({
                     />
                   </div>
                   <div>
-                    <label className={`block text-xs font-medium mb-1 ${themeClasses.label}`}>
-                      Opacity: {Math.round((selectedElement.backgroundOpacity ?? 1) * 100)}%
+                    <label
+                      className={`block text-xs font-medium mb-1 ${themeClasses.label}`}
+                    >
+                      Opacity:{" "}
+                      {Math.round(
+                        (selectedElement.backgroundOpacity ?? 1) * 100,
+                      )}
+                      %
                     </label>
                     <input
                       type="range"
@@ -671,12 +705,16 @@ const TemplateEditor: React.FC<TemplateEditorProps> = ({
 
               {/* Border */}
               <div className="border-t pt-4">
-                <h5 className={`text-xs font-semibold uppercase mb-3 ${themeClasses.muted}`}>
+                <h5
+                  className={`text-xs font-semibold uppercase mb-3 ${themeClasses.muted}`}
+                >
                   Border
                 </h5>
                 <div className="grid grid-cols-2 gap-2">
                   <div>
-                    <label className={`block text-xs font-medium mb-1 ${themeClasses.label}`}>
+                    <label
+                      className={`block text-xs font-medium mb-1 ${themeClasses.label}`}
+                    >
                       Color
                     </label>
                     <input
@@ -691,7 +729,9 @@ const TemplateEditor: React.FC<TemplateEditorProps> = ({
                     />
                   </div>
                   <div>
-                    <label className={`block text-xs font-medium mb-1 ${themeClasses.label}`}>
+                    <label
+                      className={`block text-xs font-medium mb-1 ${themeClasses.label}`}
+                    >
                       Width
                     </label>
                     <input
@@ -707,7 +747,9 @@ const TemplateEditor: React.FC<TemplateEditorProps> = ({
                     />
                   </div>
                   <div>
-                    <label className={`block text-xs font-medium mb-1 ${themeClasses.label}`}>
+                    <label
+                      className={`block text-xs font-medium mb-1 ${themeClasses.label}`}
+                    >
                       Style
                     </label>
                     <select
@@ -725,7 +767,9 @@ const TemplateEditor: React.FC<TemplateEditorProps> = ({
                     </select>
                   </div>
                   <div>
-                    <label className={`block text-xs font-medium mb-1 ${themeClasses.label}`}>
+                    <label
+                      className={`block text-xs font-medium mb-1 ${themeClasses.label}`}
+                    >
                       Radius
                     </label>
                     <input
@@ -745,11 +789,15 @@ const TemplateEditor: React.FC<TemplateEditorProps> = ({
 
               {/* Padding */}
               <div className="border-t pt-4">
-                <h5 className={`text-xs font-semibold uppercase mb-3 ${themeClasses.muted}`}>
+                <h5
+                  className={`text-xs font-semibold uppercase mb-3 ${themeClasses.muted}`}
+                >
                   Spacing
                 </h5>
                 <div>
-                  <label className={`block text-xs font-medium mb-1 ${themeClasses.label}`}>
+                  <label
+                    className={`block text-xs font-medium mb-1 ${themeClasses.label}`}
+                  >
                     Padding
                   </label>
                   <input
@@ -767,14 +815,19 @@ const TemplateEditor: React.FC<TemplateEditorProps> = ({
               </div>
 
               {/* Text Controls */}
-              {(selectedElement.type === "text" || selectedElement.type === "textarea") && (
+              {(selectedElement.type === "text" ||
+                selectedElement.type === "textarea") && (
                 <div className="border-t pt-4">
-                  <h5 className={`text-xs font-semibold uppercase mb-3 ${themeClasses.muted}`}>
+                  <h5
+                    className={`text-xs font-semibold uppercase mb-3 ${themeClasses.muted}`}
+                  >
                     Text
                   </h5>
                   <div className="grid grid-cols-2 gap-2 space-y-2">
                     <div>
-                      <label className={`block text-xs font-medium mb-1 ${themeClasses.label}`}>
+                      <label
+                        className={`block text-xs font-medium mb-1 ${themeClasses.label}`}
+                      >
                         Font Size
                       </label>
                       <input
@@ -789,7 +842,9 @@ const TemplateEditor: React.FC<TemplateEditorProps> = ({
                       />
                     </div>
                     <div>
-                      <label className={`block text-xs font-medium mb-1 ${themeClasses.label}`}>
+                      <label
+                        className={`block text-xs font-medium mb-1 ${themeClasses.label}`}
+                      >
                         Font Family
                       </label>
                       <select
@@ -810,7 +865,9 @@ const TemplateEditor: React.FC<TemplateEditorProps> = ({
                       </select>
                     </div>
                     <div>
-                      <label className={`block text-xs font-medium mb-1 ${themeClasses.label}`}>
+                      <label
+                        className={`block text-xs font-medium mb-1 ${themeClasses.label}`}
+                      >
                         Font Weight
                       </label>
                       <select
@@ -828,7 +885,9 @@ const TemplateEditor: React.FC<TemplateEditorProps> = ({
                       </select>
                     </div>
                     <div>
-                      <label className={`block text-xs font-medium mb-1 ${themeClasses.label}`}>
+                      <label
+                        className={`block text-xs font-medium mb-1 ${themeClasses.label}`}
+                      >
                         Style
                       </label>
                       <select
@@ -845,7 +904,9 @@ const TemplateEditor: React.FC<TemplateEditorProps> = ({
                       </select>
                     </div>
                     <div className="col-span-2">
-                      <label className={`block text-xs font-medium mb-1 ${themeClasses.label}`}>
+                      <label
+                        className={`block text-xs font-medium mb-1 ${themeClasses.label}`}
+                      >
                         Color
                       </label>
                       <input
@@ -860,7 +921,9 @@ const TemplateEditor: React.FC<TemplateEditorProps> = ({
                       />
                     </div>
                     <div>
-                      <label className={`block text-xs font-medium mb-1 ${themeClasses.label}`}>
+                      <label
+                        className={`block text-xs font-medium mb-1 ${themeClasses.label}`}
+                      >
                         Align
                       </label>
                       <select
@@ -878,7 +941,9 @@ const TemplateEditor: React.FC<TemplateEditorProps> = ({
                       </select>
                     </div>
                     <div>
-                      <label className={`block text-xs font-medium mb-1 ${themeClasses.label}`}>
+                      <label
+                        className={`block text-xs font-medium mb-1 ${themeClasses.label}`}
+                      >
                         Line Height
                       </label>
                       <input
@@ -894,7 +959,9 @@ const TemplateEditor: React.FC<TemplateEditorProps> = ({
                       />
                     </div>
                     <div>
-                      <label className={`block text-xs font-medium mb-1 ${themeClasses.label}`}>
+                      <label
+                        className={`block text-xs font-medium mb-1 ${themeClasses.label}`}
+                      >
                         Letter Spacing
                       </label>
                       <input
@@ -910,7 +977,9 @@ const TemplateEditor: React.FC<TemplateEditorProps> = ({
                       />
                     </div>
                     <div className="col-span-2">
-                      <label className={`block text-xs font-medium mb-1 ${themeClasses.label}`}>
+                      <label
+                        className={`block text-xs font-medium mb-1 ${themeClasses.label}`}
+                      >
                         Transform
                       </label>
                       <select
@@ -935,12 +1004,16 @@ const TemplateEditor: React.FC<TemplateEditorProps> = ({
               {/* Image Controls */}
               {selectedElement.type === "image" && (
                 <div className="border-t pt-4">
-                  <h5 className={`text-xs font-semibold uppercase mb-3 ${themeClasses.muted}`}>
+                  <h5
+                    className={`text-xs font-semibold uppercase mb-3 ${themeClasses.muted}`}
+                  >
                     Image
                   </h5>
                   <div className="space-y-2">
                     <div>
-                      <label className={`block text-xs font-medium mb-1 ${themeClasses.label}`}>
+                      <label
+                        className={`block text-xs font-medium mb-1 ${themeClasses.label}`}
+                      >
                         Object Fit
                       </label>
                       <select
