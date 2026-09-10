@@ -34,6 +34,10 @@ export default function Home() {
     updateEventName,
     resetEvent,
     updateEvent,
+    undo,
+    redo,
+    canUndo,
+    canRedo,
   } = useEventManager();
 
   const [activeTab, setActiveTab] = useState<TabType>("setup");
@@ -121,6 +125,24 @@ export default function Home() {
               </h1>
               <div className="flex items-center gap-4">
                 <ThemeToggle />
+                <div className="flex items-center gap-1">
+                  <button
+                    onClick={undo}
+                    disabled={!canUndo}
+                    title="Undo (Ctrl+Z)"
+                    className={`px-3 py-1 rounded text-sm transition-colors disabled:opacity-40 disabled:cursor-not-allowed ${themeClasses.button.secondary}`}
+                  >
+                    ↶ Undo
+                  </button>
+                  <button
+                    onClick={redo}
+                    disabled={!canRedo}
+                    title="Redo (Ctrl+Shift+Z)"
+                    className={`px-3 py-1 rounded text-sm transition-colors disabled:opacity-40 disabled:cursor-not-allowed ${themeClasses.button.secondary}`}
+                  >
+                    ↷ Redo
+                  </button>
+                </div>
                 <span className={`text-sm ${themeClasses.muted}`}>
                   Last saved: {new Date(event.updatedAt).toLocaleString()}
                 </span>
