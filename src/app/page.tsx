@@ -15,6 +15,7 @@ import { ThemeProvider } from "../contexts/ThemeContext";
 import { themeClasses } from "../utils/themeClasses";
 import { useEventManager } from "../hooks/useEventManager";
 import { ensureImportedFontsLoaded } from "../utils/fonts";
+import { resizeTemplateCanvas } from "../utils/templateSize";
 
 type TabType = "setup" | "template" | "players";
 
@@ -94,6 +95,18 @@ export default function Home() {
     });
   };
 
+  const handleBackgroundColorChange = (backgroundColor: string | undefined) => {
+    updateEvent({
+      template: { ...event.template, backgroundColor },
+    });
+  };
+
+  const handleMatchCanvasSize = (width: number, height: number) => {
+    updateEvent({
+      template: resizeTemplateCanvas(event.template, width, height),
+    });
+  };
+
   return (
     <ThemeProvider>
       <div className={`min-h-screen ${themeClasses.page}`}>
@@ -159,7 +172,14 @@ export default function Home() {
                 />
                 <BackgroundUploader
                   backgroundImage={event.template.backgroundImage}
+                  backgroundColor={event.template.backgroundColor}
+                  templateSize={{
+                    width: event.template.width,
+                    height: event.template.height,
+                  }}
                   onBackgroundChange={handleBackgroundChange}
+                  onBackgroundColorChange={handleBackgroundColorChange}
+                  onMatchCanvasSize={handleMatchCanvasSize}
                 />
               </div>
 
@@ -178,6 +198,7 @@ export default function Home() {
               template={event.template}
               fields={event.fields}
               fonts={event.fonts}
+              players={event.players}
               onTemplateChange={handleTemplateChange}
               onFontsChange={(fonts) => updateEvent({ fonts })}
             />

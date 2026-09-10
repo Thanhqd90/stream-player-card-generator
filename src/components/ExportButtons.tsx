@@ -201,6 +201,8 @@ const ExportButtons: React.FC<ExportButtonsProps> = ({
         // Set background separately to handle data URLs properly
         if (template.backgroundImage) {
           cardDiv.style.backgroundImage = `url(${template.backgroundImage})`;
+        } else if (template.backgroundColor) {
+          cardDiv.style.backgroundImage = template.backgroundColor;
         } else {
           cardDiv.style.background =
             "linear-gradient(to bottom right, #111827, #1f2937)";
@@ -221,6 +223,11 @@ const ExportButtons: React.FC<ExportButtonsProps> = ({
                   else if (el.id.includes("funfact")) displayText = "Fun Fact";
                 }
 
+                const borderRadius =
+                  el.type === "shape" && el.shapeType === "ellipse"
+                    ? "50%"
+                    : `${el.borderRadius || 0}px`;
+
                 if (el.type === "image" && value) {
                   return `<img src="${value}" crossorigin="anonymous" style="
                     position: absolute;
@@ -228,9 +235,25 @@ const ExportButtons: React.FC<ExportButtonsProps> = ({
                     top: ${el.y}px;
                     width: ${el.width}px;
                     height: ${el.height}px;
-                    border-radius: ${el.borderRadius || 0}px;
+                    border-radius: ${borderRadius};
                     object-fit: cover;
                   " />`;
+                }
+
+                if (el.type === "shape") {
+                  return `<div style="
+                    position: absolute;
+                    left: ${el.x}px;
+                    top: ${el.y}px;
+                    width: ${el.width}px;
+                    height: ${el.height}px;
+                    background-color: ${getColorWithOpacity(
+                      el.backgroundColor,
+                      el.backgroundOpacity,
+                    )};
+                    border: ${el.borderWidth || 0}px solid ${el.borderColor || "transparent"};
+                    border-radius: ${borderRadius};
+                  "></div>`;
                 }
 
                 return `<div style="
@@ -246,7 +269,7 @@ const ExportButtons: React.FC<ExportButtonsProps> = ({
                     el.backgroundOpacity,
                   )};
                   border: ${el.borderWidth || 0}px solid ${el.borderColor || "transparent"};
-                  border-radius: ${el.borderRadius || 0}px;
+                  border-radius: ${borderRadius};
                   padding: ${el.padding || 0}px;
                   font-weight: ${el.fontWeight || "normal"};
                   text-align: ${el.textAlign || "left"};

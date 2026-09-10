@@ -1,6 +1,7 @@
 import { SavedEvent } from "../types/event";
 import { CardTemplate, TemplateElement } from "../types/template";
 import { FieldDefinition } from "../types/player";
+import { PLACEHOLDER_BACKGROUNDS } from "./placeholderBackgrounds";
 
 export function createDefaultEvent(): SavedEvent {
   const defaultFields: FieldDefinition[] = [
@@ -219,6 +220,7 @@ export function createDefaultEvent(): SavedEvent {
     width: 500,
     height: 700,
     backgroundImage: undefined,
+    backgroundColor: PLACEHOLDER_BACKGROUNDS[0].value,
     elements: defaultElements,
   };
 

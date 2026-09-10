@@ -4,6 +4,9 @@ export interface CardTemplate {
   width: number;
   height: number;
   backgroundImage?: string;
+  // Fallback CSS background (solid color or gradient) shown when no
+  // backgroundImage is set, so a template never looks like a blank box.
+  backgroundColor?: string;
   elements: TemplateElement[];
 }
 
@@ -52,5 +55,20 @@ export interface TemplateElement {
 
   // Image styles (image)
   objectFit?: "cover" | "contain" | "fill";
-  objectPosition?: "center";
+  objectPosition?:
+    | "center"
+    | "top"
+    | "bottom"
+    | "left"
+    | "right"
+    | "top left"
+    | "top right"
+    | "bottom left"
+    | "bottom right";
+
+  // Static image not tied to a per-player field (e.g. logo/watermark)
+  staticImageSrc?: string;
+
+  // Shape styles (shape)
+  shapeType?: "rectangle" | "ellipse" | "line";
 }

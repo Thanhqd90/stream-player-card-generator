@@ -1,17 +1,31 @@
 import React, { useState, useRef, useCallback, useEffect } from "react";
 import { CardTemplate, TemplateElement } from "../types/template";
-import { FieldDefinition } from "../types/player";
+import { FieldDefinition, Player } from "../types/player";
 import { ImportedFont } from "../types/event";
 import { BUILTIN_FONTS, isValidFontUrl } from "../utils/fonts";
 import { themeClasses } from "../utils/themeClasses";
+import { CardElementContent, getElementBoxStyle } from "../utils/renderCardElement";
+import { compressImageDataUrl } from "../utils/imageCompression";
+import { clampElementToBounds, resizeTemplateCanvas } from "../utils/templateSize";
 
 interface TemplateEditorProps {
   template: CardTemplate;
   fields: FieldDefinition[];
   fonts: ImportedFont[];
+  players: Player[];
   onTemplateChange: (template: CardTemplate) => void;
   onFontsChange: (fonts: ImportedFont[]) => void;
 }
+
+const SIZE_PRESETS: { label: string; width: number; height: number }[] = [
+  { label: "Portrait (500 × 700)", width: 500, height: 700 },
+  { label: "Story (1080 × 1920)", width: 1080, height: 1920 },
+  { label: "Landscape (1920 × 1080)", width: 1920, height: 1080 },
+  { label: "Square (1080 × 1080)", width: 1080, height: 1080 },
+  { label: "Widescreen banner (1200 × 630)", width: 1200, height: 630 },
+];
+
+const ZOOM_OPTIONS = [0.25, 0.5, 0.75, 1] as const;
 
 type ResizeHandle = "nw" | "n" | "ne" | "w" | "e" | "sw" | "s" | "se";
 
@@ -37,6 +51,7 @@ const TemplateEditor: React.FC<TemplateEditorProps> = ({
   template,
   fields,
   fonts,
+  players,
   onTemplateChange,
   onFontsChange,
 }) => {
@@ -50,11 +65,34 @@ const TemplateEditor: React.FC<TemplateEditorProps> = ({
   const [fontManagerMessage, setFontManagerMessage] = useState<string | null>(
     null,
   );
+  const [zoom, setZoom] = useState<number | "fit">(1);
+  const [fitZoom, setFitZoom] = useState(1);
+  const [previewPlayerId, setPreviewPlayerId] = useState<string | null>(null);
   const canvasRef = useRef<HTMLDivElement>(null);
+  const canvasWrapperRef = useRef<HTMLDivElement>(null);
 
   const selectedElement = selectedElementId
     ? template.elements.find((e) => e.id === selectedElementId)
     : null;
+
+  const previewPlayer =
+    players.find((p) => p.id === previewPlayerId) || players[0] || null;
+
+  const effectiveZoom = zoom === "fit" ? fitZoom : zoom;
+
+  // Recompute "fit" zoom whenever the canvas size or wrapper size can change
+  useEffect(() => {
+    const computeFit = () => {
+      if (!canvasWrapperRef.current) return;
+      const availableWidth = canvasWrapperRef.current.clientWidth;
+      if (availableWidth > 0) {
+        setFitZoom(Math.min(1, availableWidth / template.width));
+      }
+    };
+    computeFit();
+    window.addEventListener("resize", computeFit);
+    return () => window.removeEventListener("resize", computeFit);
+  }, [template.width]);
 
   const availableFontFamilies = Array.from(
     new Set([
@@ -71,52 +109,16 @@ const TemplateEditor: React.FC<TemplateEditorProps> = ({
     return rect.width / template.width;
   }, [template.width]);
 
-  // Clamp element position and size
-  const clampElement = (element: TemplateElement): TemplateElement => {
-    return {
-      ...element,
-      x: Math.max(0, Math.min(element.x, template.width - element.width)),
-      y: Math.max(0, Math.min(element.y, template.height - element.height)),
-      width: Math.max(20, Math.min(element.width, template.width - element.x)),
-      height: Math.max(
-        20,
-        Math.min(element.height, template.height - element.y),
-      ),
-    };
-  };
+  // Clamp element position and size to the given canvas bounds (defaults to
+  // the current template size)
+  const clampElement = (
+    element: TemplateElement,
+    boundsWidth: number = template.width,
+    boundsHeight: number = template.height,
+  ): TemplateElement => clampElementToBounds(element, boundsWidth, boundsHeight);
 
-  const applyOpacityToColor = (color?: string, opacity?: number) => {
-    if (!color) return undefined;
-    const alpha = opacity ?? 1;
-    const hexMatch = color.match(/^#([A-Fa-f0-9]{3}|[A-Fa-f0-9]{6})$/);
-    const rgbaMatch = color.match(
-      /rgba?\((\d+),\s*(\d+),\s*(\d+)(?:,\s*([\d.]+))?\)/,
-    );
-
-    if (rgbaMatch) {
-      const [, r, g, b] = rgbaMatch;
-      return `rgba(${r}, ${g}, ${b}, ${alpha})`;
-    }
-
-    if (alpha >= 1) return color;
-    if (!hexMatch) return color;
-
-    const clean = hexMatch[1];
-    let r = 0;
-    let g = 0;
-    let b = 0;
-
-    if (clean.length === 6) {
-      r = parseInt(clean.slice(0, 2), 16);
-      g = parseInt(clean.slice(2, 4), 16);
-      b = parseInt(clean.slice(4, 6), 16);
-    } else {
-      r = parseInt(clean[0] + clean[0], 16);
-      g = parseInt(clean[1] + clean[1], 16);
-      b = parseInt(clean[2] + clean[2], 16);
-    }
-
-    return `rgba(${r}, ${g}, ${b}, ${alpha})`;
+  const handleTemplateSizeChange = (width: number, height: number) => {
+    onTemplateChange(resizeTemplateCanvas(template, width, height));
   };
 
   const handleAddElement = (fieldId: string) => {
@@ -468,11 +470,83 @@ const TemplateEditor: React.FC<TemplateEditorProps> = ({
     );
   };
 
-  // Get fields that haven't been added to template yet
-  const usedFieldIds = new Set(
-    template.elements.map((el) => el.fieldId).filter(Boolean),
-  );
-  const availableFields = fields.filter((f) => !usedFieldIds.has(f.id));
+  // Fields can be placed on the canvas more than once (e.g. the same photo
+  // shown twice at different sizes) - just annotate how many times each
+  // field is already used so the dropdown stays informative.
+  const fieldPlacementCounts = new Map<string, number>();
+  template.elements.forEach((el) => {
+    if (!el.fieldId) return;
+    fieldPlacementCounts.set(
+      el.fieldId,
+      (fieldPlacementCounts.get(el.fieldId) ?? 0) + 1,
+    );
+  });
+
+  const handleAddStaticImage = (file: File) => {
+    const reader = new FileReader();
+    reader.onload = async (e) => {
+      const result = e.target?.result as string;
+      const compressed = await compressImageDataUrl(result);
+      const newElement: TemplateElement = {
+        id: `static-image-${Date.now()}`,
+        fieldId: "",
+        type: "image",
+        x: 20,
+        y: 20,
+        width: 150,
+        height: 150,
+        visible: true,
+        locked: false,
+        zIndex: 0,
+        opacity: 1,
+        objectFit: "cover",
+        objectPosition: "center",
+        staticImageSrc: compressed,
+      };
+      onTemplateChange({
+        ...template,
+        elements: [...template.elements, newElement],
+      });
+      setSelectedElementId(newElement.id);
+    };
+    reader.readAsDataURL(file);
+  };
+
+  const handleAddShape = (shapeType: "rectangle" | "ellipse" | "line") => {
+    const shapeDefaults: Record<
+      "rectangle" | "ellipse" | "line",
+      Partial<TemplateElement>
+    > = {
+      rectangle: { width: 160, height: 100, borderRadius: 0 },
+      ellipse: { width: 120, height: 120 },
+      line: { width: 200, height: 4 },
+    };
+
+    const newElement: TemplateElement = {
+      id: `shape-${shapeType}-${Date.now()}`,
+      fieldId: "",
+      type: "shape",
+      shapeType,
+      x: 20,
+      y: 20,
+      width: 160,
+      height: 100,
+      visible: true,
+      locked: false,
+      zIndex: 0,
+      opacity: 1,
+      backgroundColor: "#a855f7",
+      backgroundOpacity: 1,
+      borderWidth: 0,
+      ...shapeDefaults[shapeType],
+    };
+
+    onTemplateChange({
+      ...template,
+      elements: [...template.elements, newElement],
+    });
+    setSelectedElementId(newElement.id);
+  };
 
   return (
     <div className={`${themeClasses.panel} rounded-lg shadow-md p-6`}>
@@ -483,128 +557,267 @@ const TemplateEditor: React.FC<TemplateEditorProps> = ({
       <div className="flex gap-6">
         {/* Canvas */}
         <div className="flex-1">
+          {/* Canvas Size */}
+          <div className="mb-4 flex flex-wrap items-end gap-3">
+            <div>
+              <label
+                className={`block text-xs font-medium mb-1 ${themeClasses.label}`}
+              >
+                Width
+              </label>
+              <input
+                type="number"
+                value={template.width}
+                onChange={(e) =>
+                  handleTemplateSizeChange(
+                    Number(e.target.value),
+                    template.height,
+                  )
+                }
+                className={`w-24 border rounded px-2 py-1 text-sm ${themeClasses.input}`}
+              />
+            </div>
+            <div>
+              <label
+                className={`block text-xs font-medium mb-1 ${themeClasses.label}`}
+              >
+                Height
+              </label>
+              <input
+                type="number"
+                value={template.height}
+                onChange={(e) =>
+                  handleTemplateSizeChange(
+                    template.width,
+                    Number(e.target.value),
+                  )
+                }
+                className={`w-24 border rounded px-2 py-1 text-sm ${themeClasses.input}`}
+              />
+            </div>
+            <div>
+              <label
+                className={`block text-xs font-medium mb-1 ${themeClasses.label}`}
+              >
+                Preset
+              </label>
+              <select
+                onChange={(e) => {
+                  const preset = SIZE_PRESETS[Number(e.target.value)];
+                  if (preset) {
+                    handleTemplateSizeChange(preset.width, preset.height);
+                  }
+                  e.target.value = "";
+                }}
+                defaultValue=""
+                className={`border rounded px-2 py-1 text-sm ${themeClasses.input}`}
+              >
+                <option value="">Choose a size...</option>
+                {SIZE_PRESETS.map((preset, i) => (
+                  <option key={preset.label} value={i}>
+                    {preset.label}
+                  </option>
+                ))}
+              </select>
+            </div>
+            <div>
+              <label
+                className={`block text-xs font-medium mb-1 ${themeClasses.label}`}
+              >
+                Zoom
+              </label>
+              <select
+                value={zoom}
+                onChange={(e) =>
+                  setZoom(
+                    e.target.value === "fit" ? "fit" : Number(e.target.value),
+                  )
+                }
+                className={`border rounded px-2 py-1 text-sm ${themeClasses.input}`}
+              >
+                <option value="fit">Fit</option>
+                {ZOOM_OPTIONS.map((z) => (
+                  <option key={z} value={z}>
+                    {Math.round(z * 100)}%
+                  </option>
+                ))}
+              </select>
+            </div>
+            <div>
+              <label
+                className={`block text-xs font-medium mb-1 ${themeClasses.label}`}
+              >
+                Preview data
+              </label>
+              <select
+                value={previewPlayer?.id || ""}
+                onChange={(e) => setPreviewPlayerId(e.target.value || null)}
+                className={`border rounded px-2 py-1 text-sm ${themeClasses.input}`}
+              >
+                {players.length === 0 && (
+                  <option value="">Sample placeholders</option>
+                )}
+                {players.map((p) => (
+                  <option key={p.id} value={p.id}>
+                    {p.values[fields[0]?.id] || p.id}
+                  </option>
+                ))}
+              </select>
+            </div>
+          </div>
+
           <div className="text-xs text-slate-500 dark:text-slate-400 mb-2">
             Click to select • Drag to move • Use handles to resize • Delete key
             to remove • Arrow keys to nudge (Shift for 10px)
           </div>
-          <div
-            ref={canvasRef}
-            className="relative border-2 border-slate-300 dark:border-slate-600 bg-slate-100 dark:bg-slate-800 mx-auto"
-            style={{
-              width: template.width,
-              height: template.height,
-              backgroundImage: template.backgroundImage
-                ? `url(${template.backgroundImage})`
-                : undefined,
-              backgroundSize: "cover",
-              backgroundPosition: "center",
-            }}
-            onMouseMove={handleMouseMove}
-            onMouseUp={handleMouseUp}
-            onMouseLeave={handleMouseUp}
-            onClick={handleCanvasClick}
-          >
-            {template.elements
-              .filter((el) => el.visible !== false)
-              .sort((a, b) => (a.zIndex ?? 0) - (b.zIndex ?? 0))
-              .map((element) => (
-                <div
-                  key={element.id}
-                  className={`absolute border-2 transition-colors ${
-                    element.locked ? "opacity-60" : "cursor-move"
-                  } ${
-                    selectedElementId === element.id
-                      ? "border-blue-500 dark:border-blue-400 shadow-lg"
-                      : "border-transparent hover:border-slate-400 dark:hover:border-slate-500"
-                  }`}
-                  style={{
-                    left: element.x,
-                    top: element.y,
-                    width: element.width,
-                    height: element.height,
-                    zIndex: element.zIndex ?? 0,
-                    opacity:
-                      element.opacity !== undefined ? element.opacity : 1,
-                    fontSize: element.fontSize,
-                    color: element.color,
-                    borderColor: element.borderColor,
-                    borderWidth: element.borderWidth ? element.borderWidth : 0,
-                    borderStyle: element.borderStyle || "solid",
-                    borderRadius: element.borderRadius,
-                    padding: element.padding,
-                    fontWeight: element.fontWeight,
-                    fontStyle: element.fontStyle || "normal",
-                    textAlign: element.textAlign,
-                    lineHeight: element.lineHeight,
-                    letterSpacing: element.letterSpacing,
-                    textTransform: element.textTransform || "none",
-                    fontFamily: element.fontFamily,
-                    backgroundColor: applyOpacityToColor(
-                      element.backgroundColor,
-                      element.backgroundOpacity,
-                    ),
-                  }}
-                  onMouseDown={(e) => handleMouseDown(e, element.id)}
-                  onClick={(e) => handleElementClick(e, element.id)}
-                >
-                  {element.type === "image" ? (
-                    <div className="w-full h-full bg-slate-200 dark:bg-slate-700 flex items-center justify-center text-xs text-slate-500 dark:text-slate-400">
-                      [Image: {element.fieldId}]
-                    </div>
-                  ) : (
-                    <div className="whitespace-pre-line overflow-hidden">
-                      {element.type === "textarea"
-                        ? "Sample\nText"
-                        : "Sample Text"}
-                    </div>
-                  )}
+          <div ref={canvasWrapperRef} className="w-full overflow-auto">
+            <div
+              style={{
+                width: template.width * effectiveZoom,
+                height: template.height * effectiveZoom,
+              }}
+            >
+              <div
+                ref={canvasRef}
+                className="relative border-2 border-slate-300 dark:border-slate-600 bg-slate-100 dark:bg-slate-800"
+                style={{
+                  width: template.width,
+                  height: template.height,
+                  transform: `scale(${effectiveZoom})`,
+                  transformOrigin: "top left",
+                  backgroundImage: template.backgroundImage
+                    ? `url(${template.backgroundImage})`
+                    : template.backgroundColor,
+                  backgroundSize: "cover",
+                  backgroundPosition: "center",
+                }}
+                onMouseMove={handleMouseMove}
+                onMouseUp={handleMouseUp}
+                onMouseLeave={handleMouseUp}
+                onClick={handleCanvasClick}
+              >
+                {template.elements
+                  .filter((el) => el.visible !== false)
+                  .sort((a, b) => (a.zIndex ?? 0) - (b.zIndex ?? 0))
+                  .map((element) => (
+                    <div
+                      key={element.id}
+                      className={`absolute border-2 transition-colors ${
+                        element.locked ? "opacity-60" : "cursor-move"
+                      } ${
+                        selectedElementId === element.id
+                          ? "border-blue-500 dark:border-blue-400 shadow-lg"
+                          : "border-transparent hover:border-slate-400 dark:hover:border-slate-500"
+                      }`}
+                      style={getElementBoxStyle(element)}
+                      onMouseDown={(e) => handleMouseDown(e, element.id)}
+                      onClick={(e) => handleElementClick(e, element.id)}
+                    >
+                      <CardElementContent
+                        element={element}
+                        player={previewPlayer}
+                        placeholder={!previewPlayer}
+                      />
 
-                  {/* Resize handles - only show when selected and not locked */}
-                  {selectedElementId === element.id && !element.locked && (
-                    <>
-                      <ResizeHandle handle="nw" elementId={element.id} />
-                      <ResizeHandle handle="n" elementId={element.id} />
-                      <ResizeHandle handle="ne" elementId={element.id} />
-                      <ResizeHandle handle="w" elementId={element.id} />
-                      <ResizeHandle handle="e" elementId={element.id} />
-                      <ResizeHandle handle="sw" elementId={element.id} />
-                      <ResizeHandle handle="s" elementId={element.id} />
-                      <ResizeHandle handle="se" elementId={element.id} />
-                    </>
-                  )}
+                      {/* Resize handles - only show when selected and not locked */}
+                      {selectedElementId === element.id && !element.locked && (
+                        <>
+                          <ResizeHandle handle="nw" elementId={element.id} />
+                          <ResizeHandle handle="n" elementId={element.id} />
+                          <ResizeHandle handle="ne" elementId={element.id} />
+                          <ResizeHandle handle="w" elementId={element.id} />
+                          <ResizeHandle handle="e" elementId={element.id} />
+                          <ResizeHandle handle="sw" elementId={element.id} />
+                          <ResizeHandle handle="s" elementId={element.id} />
+                          <ResizeHandle handle="se" elementId={element.id} />
+                        </>
+                      )}
 
-                  {/* Locked indicator */}
-                  {element.locked && selectedElementId === element.id && (
-                    <div className="absolute bottom-1 right-1 text-xs bg-yellow-500 text-slate-900 px-2 py-1 rounded pointer-events-none">
-                      🔒 Locked
+                      {/* Locked indicator */}
+                      {element.locked && selectedElementId === element.id && (
+                        <div className="absolute bottom-1 right-1 text-xs bg-yellow-500 text-slate-900 px-2 py-1 rounded pointer-events-none">
+                          🔒 Locked
+                        </div>
+                      )}
                     </div>
-                  )}
-                </div>
-              ))}
+                  ))}
+              </div>
+            </div>
           </div>
 
           {/* Add Element Controls */}
-          <div className="mt-4">
-            <h4 className={`font-medium mb-2 ${themeClasses.label}`}>
-              Add Field to Template
-            </h4>
-            <select
-              onChange={(e) => {
-                if (e.target.value) {
-                  handleAddElement(e.target.value);
+          <div className="mt-4 flex flex-wrap items-end gap-3">
+            <div>
+              <h4 className={`font-medium mb-2 ${themeClasses.label}`}>
+                Add Field to Template
+              </h4>
+              <select
+                onChange={(e) => {
+                  if (e.target.value) {
+                    handleAddElement(e.target.value);
+                    e.target.value = "";
+                  }
+                }}
+                className={`border rounded px-3 py-2 ${themeClasses.input}`}
+                defaultValue=""
+              >
+                <option value="">Select a field...</option>
+                {fields.map((field) => {
+                  const count = fieldPlacementCounts.get(field.id) ?? 0;
+                  return (
+                    <option key={field.id} value={field.id}>
+                      {field.label}
+                      {count > 0 ? ` (placed ${count}x)` : ""}
+                    </option>
+                  );
+                })}
+              </select>
+            </div>
+            <div>
+              <h4 className={`font-medium mb-2 ${themeClasses.label}`}>
+                Add Static Image
+              </h4>
+              <input
+                type="file"
+                accept="image/*"
+                onChange={(e) => {
+                  const file = e.target.files?.[0];
+                  if (file) {
+                    handleAddStaticImage(file);
+                  }
                   e.target.value = "";
-                }
-              }}
-              className={`border rounded px-3 py-2 mr-2 ${themeClasses.input}`}
-              defaultValue=""
-            >
-              <option value="">Select a field...</option>
-              {availableFields.map((field) => (
-                <option key={field.id} value={field.id}>
-                  {field.label}
-                </option>
-              ))}
-            </select>
+                }}
+                className={`border rounded px-3 py-2 text-sm ${themeClasses.input}`}
+              />
+            </div>
+            <div>
+              <h4 className={`font-medium mb-2 ${themeClasses.label}`}>
+                Add Shape
+              </h4>
+              <div className="flex gap-2">
+                <button
+                  type="button"
+                  onClick={() => handleAddShape("rectangle")}
+                  className={`px-3 py-2 rounded text-sm ${themeClasses.button.secondary}`}
+                >
+                  ▭ Rectangle
+                </button>
+                <button
+                  type="button"
+                  onClick={() => handleAddShape("ellipse")}
+                  className={`px-3 py-2 rounded text-sm ${themeClasses.button.secondary}`}
+                >
+                  ◯ Ellipse
+                </button>
+                <button
+                  type="button"
+                  onClick={() => handleAddShape("line")}
+                  className={`px-3 py-2 rounded text-sm ${themeClasses.button.secondary}`}
+                >
+                  ─ Line
+                </button>
+              </div>
+            </div>
           </div>
         </div>
 
@@ -1258,15 +1471,60 @@ const TemplateEditor: React.FC<TemplateEditorProps> = ({
                         value={selectedElement.objectPosition || "center"}
                         onChange={(e) =>
                           handleElementUpdate(selectedElement.id, {
-                            objectPosition: e.target.value as "center",
+                            objectPosition: e.target
+                              .value as TemplateElement["objectPosition"],
                           })
                         }
                         className={`w-full border rounded px-2 py-1 text-sm ${themeClasses.input}`}
                       >
                         <option value="center">Center</option>
+                        <option value="top">Top</option>
+                        <option value="bottom">Bottom</option>
+                        <option value="left">Left</option>
+                        <option value="right">Right</option>
+                        <option value="top left">Top Left</option>
+                        <option value="top right">Top Right</option>
+                        <option value="bottom left">Bottom Left</option>
+                        <option value="bottom right">Bottom Right</option>
                       </select>
                     </div>
                   </div>
+                </div>
+              )}
+
+              {/* Shape Controls */}
+              {selectedElement.type === "shape" && (
+                <div className="border-t pt-4">
+                  <h5
+                    className={`text-xs font-semibold uppercase mb-3 ${themeClasses.muted}`}
+                  >
+                    Shape
+                  </h5>
+                  <div>
+                    <label
+                      className={`block text-xs font-medium mb-1 ${themeClasses.label}`}
+                    >
+                      Shape Type
+                    </label>
+                    <select
+                      value={selectedElement.shapeType || "rectangle"}
+                      onChange={(e) =>
+                        handleElementUpdate(selectedElement.id, {
+                          shapeType: e.target
+                            .value as TemplateElement["shapeType"],
+                        })
+                      }
+                      className={`w-full border rounded px-2 py-1 text-sm ${themeClasses.input}`}
+                    >
+                      <option value="rectangle">Rectangle</option>
+                      <option value="ellipse">Ellipse</option>
+                      <option value="line">Line</option>
+                    </select>
+                  </div>
+                  <p className={`text-xs mt-2 ${themeClasses.muted}`}>
+                    Use the Background section for fill color and the Border
+                    section for stroke.
+                  </p>
                 </div>
               )}
 

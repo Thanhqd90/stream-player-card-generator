@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from "react";
 import { Player, FieldDefinition } from "../types/player";
 import { themeClasses } from "../utils/themeClasses";
+import { compressImageDataUrl } from "../utils/imageCompression";
 
 interface DynamicPlayerFormProps {
   player: Player | null;
@@ -55,9 +56,14 @@ const DynamicPlayerForm: React.FC<DynamicPlayerFormProps> = ({
 
   const handleFileUpload = (fieldId: string, file: File) => {
     const reader = new FileReader();
-    reader.onload = (e) => {
+    reader.onload = async (e) => {
       const result = e.target?.result as string;
-      setFormData((prev) => ({ ...prev, [fieldId]: result }));
+      try {
+        const compressed = await compressImageDataUrl(result);
+        setFormData((prev) => ({ ...prev, [fieldId]: compressed }));
+      } catch {
+        setFormData((prev) => ({ ...prev, [fieldId]: result }));
+      }
     };
     reader.readAsDataURL(file);
   };
