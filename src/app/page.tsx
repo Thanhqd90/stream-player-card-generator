@@ -5,6 +5,7 @@ import PlayerCard from "../components/PlayerCard";
 import DynamicPlayerForm from "../components/DynamicPlayerForm";
 import PlayerList from "../components/PlayerList";
 import CsvImporter from "../components/CsvImporter";
+import BulkPhotoImporter from "../components/BulkPhotoImporter";
 import EventImportExport from "../components/EventImportExport";
 import ExportButtons from "../components/ExportButtons";
 import FieldManager from "../components/FieldManager";
@@ -30,6 +31,7 @@ export default function Home() {
     deletePlayer,
     duplicatePlayer,
     importPlayers,
+    importPlayerPhotos,
     importEvent,
     updateEventName,
     resetEvent,
@@ -276,6 +278,11 @@ export default function Home() {
                 <CsvImporter
                   fields={event.fields}
                   onImportPlayers={importPlayers}
+                />
+                <BulkPhotoImporter
+                  players={event.players}
+                  fields={event.fields}
+                  onImportPhotos={importPlayerPhotos}
                 />
               </div>
 

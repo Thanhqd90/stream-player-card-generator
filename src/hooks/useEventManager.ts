@@ -218,6 +218,25 @@ export function useEventManager() {
     [event, selectedPlayerId, updateEvent],
   );
 
+  const importPlayerPhotos = useCallback(
+    (updates: { playerId: string; dataUrl: string }[], fieldId: string) => {
+      if (!event || updates.length === 0) return;
+
+      const updateByPlayerId = new Map(
+        updates.map((u) => [u.playerId, u.dataUrl]),
+      );
+
+      updateEvent({
+        players: event.players.map((p) => {
+          const dataUrl = updateByPlayerId.get(p.id);
+          if (dataUrl === undefined) return p;
+          return { ...p, values: { ...p.values, [fieldId]: dataUrl } };
+        }),
+      });
+    },
+    [event, updateEvent],
+  );
+
   const importEvent = useCallback(
     (importedEvent: SavedEvent) => {
       if (event) pushHistorySnapshot(event, true);
@@ -267,6 +286,7 @@ export function useEventManager() {
     deletePlayer,
     duplicatePlayer,
     importPlayers,
+    importPlayerPhotos,
     importEvent,
     updateEvent,
     updateEventName,

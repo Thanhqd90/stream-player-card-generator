@@ -8,6 +8,7 @@ import { exportCardAsPng, exportCardAsPngDataUrl } from "../utils/exportCard";
 import {
   generateZipFileName,
   generatePlayerCardFileName,
+  dedupeFileName,
 } from "../utils/fileNames";
 import PlayerCard from "./PlayerCard";
 import { themeClasses } from "../utils/themeClasses";
@@ -163,6 +164,7 @@ const ExportButtons: React.FC<ExportButtonsProps> = ({
     setIsExportingAll(true);
     try {
       const zip = new JSZip();
+      const usedFileNames = new Set<string>();
 
       // Create hidden cards for export using React components
       const cardElements: HTMLElement[] = [];
@@ -307,9 +309,9 @@ const ExportButtons: React.FC<ExportButtonsProps> = ({
           await new Promise((resolve) => setTimeout(resolve, 100));
           const dataUrl = await exportCardAsPngDataUrl(cardElement, template);
           const base64Data = dataUrl.split(",")[1];
-          const fileName = generatePlayerCardFileName(
-            player.values.handle || "player",
-            player.values.seed || "00",
+          const fileName = dedupeFileName(
+            generatePlayerCardFileName(player.values.handle || "player"),
+            usedFileNames,
           );
 
           zip.file(fileName, base64Data, { base64: true });

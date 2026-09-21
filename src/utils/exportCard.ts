@@ -1,6 +1,7 @@
 import { toPng } from "html-to-image";
 import { Player } from "../types/player";
 import { CardTemplate } from "../types/template";
+import { generatePlayerCardFileName } from "./fileNames";
 
 async function waitForDocumentFonts(): Promise<void> {
   if (
@@ -71,7 +72,7 @@ export async function exportCardAsPng(
     });
 
     const link = document.createElement("a");
-    link.download = generateFileName(player);
+    link.download = generatePlayerCardFileName(player.values.handle || "player");
     link.href = dataUrl;
     link.click();
   } catch (error) {
@@ -99,14 +100,4 @@ export async function exportCardAsPngDataUrl(
       `Failed to generate PNG data URL: ${formatExportError(error)}`,
     );
   }
-}
-
-function generateFileName(player: Player): string {
-  const sanitizedHandle = (player.values.handle || "player")
-    .replace(/[^a-zA-Z0-9-_]/g, "-")
-    .toLowerCase();
-  const sanitizedSeed = (player.values.seed || "00")
-    .replace(/[^a-zA-Z0-9-_]/g, "-")
-    .toLowerCase();
-  return `seed-${sanitizedSeed}-${sanitizedHandle}.png`;
 }
