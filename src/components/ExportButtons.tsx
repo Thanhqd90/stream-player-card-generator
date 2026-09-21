@@ -167,7 +167,12 @@ const ExportButtons: React.FC<ExportButtonsProps> = ({
       const usedFileNames = new Set<string>();
 
       // Create hidden cards for export using React components
-      const cardElements: HTMLElement[] = [];
+      // `container` is the off-screen-positioned wrapper (kept for cleanup);
+      // `cardDiv` is the actual card content, one level in from the offset
+      // element. html-to-image renders blank when the captured element
+      // itself has position:absolute/fixed with a large negative offset, so
+      // we must capture cardDiv, not container.
+      const cardElements: { container: HTMLElement; cardDiv: HTMLElement }[] = [];
 
       for (const player of players) {
         // Create a container for the React component
@@ -177,14 +182,12 @@ const ExportButtons: React.FC<ExportButtonsProps> = ({
         container.style.top = "-9999px";
         container.style.width = `${template.width}px`;
         container.style.height = `${template.height}px`;
-        container.style.visibility = "hidden";
         container.style.pointerEvents = "none";
 
         // Use React to render the PlayerCard component
         const root = document.createElement("div");
         root.style.width = `${template.width}px`;
         root.style.height = `${template.height}px`;
-        root.style.visibility = "visible";
 
         // We'll render the card content directly since we can't easily use ReactDOM in this context
         // This is a compromise for client-side only functionality
@@ -296,18 +299,18 @@ const ExportButtons: React.FC<ExportButtonsProps> = ({
         root.appendChild(cardDiv);
         container.appendChild(root);
         document.body.appendChild(container);
-        cardElements.push(container);
+        cardElements.push({ container, cardDiv });
       }
 
       // Generate PNGs and add to ZIP
       for (let i = 0; i < players.length; i++) {
         const player = players[i];
-        const cardElement = cardElements[i];
+        const { cardDiv } = cardElements[i];
 
         try {
           // Ensure the card is fully rendered before converting to PNG
           await new Promise((resolve) => setTimeout(resolve, 100));
-          const dataUrl = await exportCardAsPngDataUrl(cardElement, template);
+          const dataUrl = await exportCardAsPngDataUrl(cardDiv, template);
           const base64Data = dataUrl.split(",")[1];
           const fileName = dedupeFileName(
             generatePlayerCardFileName(player.values.handle || "player"),
@@ -324,8 +327,8 @@ const ExportButtons: React.FC<ExportButtonsProps> = ({
       }
 
       // Clean up temporary elements
-      cardElements.forEach((element) => {
-        document.body.removeChild(element);
+      cardElements.forEach(({ container }) => {
+        document.body.removeChild(container);
       });
 
       // Generate and download ZIP
