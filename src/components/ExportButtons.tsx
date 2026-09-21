@@ -212,7 +212,7 @@ const ExportButtons: React.FC<ExportButtonsProps> = ({
 
         const innerHtml = `
             ${template.elements
-              .filter((el) => el.visible)
+              .filter((el) => el.visible !== false)
               .map((el) => {
                 const value = el.fieldId ? player.values[el.fieldId] || "" : "";
                 let displayText = value;
