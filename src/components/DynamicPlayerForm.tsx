@@ -2,6 +2,7 @@ import React, { useState, useEffect } from "react";
 import { Player, FieldDefinition } from "../types/player";
 import { themeClasses } from "../utils/themeClasses";
 import { compressImageDataUrl } from "../utils/imageCompression";
+import ImageCropper from "./ImageCropper";
 
 interface DynamicPlayerFormProps {
   player: Player | null;
@@ -17,6 +18,10 @@ const DynamicPlayerForm: React.FC<DynamicPlayerFormProps> = ({
   onCancel,
 }) => {
   const [formData, setFormData] = useState<Record<string, string>>({});
+  const [croppingField, setCroppingField] = useState<{
+    fieldId: string;
+    src: string;
+  } | null>(null);
 
   useEffect(() => {
     if (player) {
@@ -56,16 +61,24 @@ const DynamicPlayerForm: React.FC<DynamicPlayerFormProps> = ({
 
   const handleFileUpload = (fieldId: string, file: File) => {
     const reader = new FileReader();
-    reader.onload = async (e) => {
+    reader.onload = (e) => {
       const result = e.target?.result as string;
-      try {
-        const compressed = await compressImageDataUrl(result);
-        setFormData((prev) => ({ ...prev, [fieldId]: compressed }));
-      } catch {
-        setFormData((prev) => ({ ...prev, [fieldId]: result }));
-      }
+      setCroppingField({ fieldId, src: result });
     };
     reader.readAsDataURL(file);
+  };
+
+  const handleCropComplete = async (dataUrl: string) => {
+    if (!croppingField) return;
+    const fieldId = croppingField.fieldId;
+    try {
+      const compressed = await compressImageDataUrl(dataUrl);
+      setFormData((prev) => ({ ...prev, [fieldId]: compressed }));
+    } catch {
+      setFormData((prev) => ({ ...prev, [fieldId]: dataUrl }));
+    } finally {
+      setCroppingField(null);
+    }
   };
 
   const renderField = (field: FieldDefinition) => {
@@ -124,6 +137,15 @@ const DynamicPlayerForm: React.FC<DynamicPlayerFormProps> = ({
                   alt={field.label}
                   className="max-w-32 max-h-32 border rounded border-slate-300 dark:border-slate-600"
                 />
+                <button
+                  type="button"
+                  onClick={() =>
+                    setCroppingField({ fieldId: field.id, src: value })
+                  }
+                  className={`ml-2 text-blue-600 dark:text-blue-400 hover:text-blue-800 dark:hover:text-blue-300 text-sm`}
+                >
+                  Edit Crop
+                </button>
                 <button
                   type="button"
                   onClick={() =>
@@ -191,6 +213,15 @@ const DynamicPlayerForm: React.FC<DynamicPlayerFormProps> = ({
           </button>
         </div>
       </form>
+
+      {croppingField && (
+        <ImageCropper
+          imageSrc={croppingField.src}
+          aspectRatio={1}
+          onCancel={() => setCroppingField(null)}
+          onCropComplete={handleCropComplete}
+        />
+      )}
     </div>
   );
 };
