@@ -29,6 +29,7 @@ export default function Home() {
     addPlayer,
     updatePlayer,
     deletePlayer,
+    removeAllPlayers,
     duplicatePlayer,
     importPlayers,
     importPlayerPhotos,
@@ -248,6 +249,10 @@ export default function Home() {
                       }}
                       onDeletePlayer={deletePlayer}
                       onDuplicatePlayer={duplicatePlayer}
+                      onRemoveAllPlayers={() => {
+                        removeAllPlayers();
+                        setEditingPlayer(null);
+                      }}
                     />
                   </div>
                   <button

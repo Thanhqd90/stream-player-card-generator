@@ -8,6 +8,7 @@ interface PlayerListProps {
   onSelectPlayer: (player: Player) => void;
   onDeletePlayer: (playerId: string) => void;
   onDuplicatePlayer: (player: Player) => void;
+  onRemoveAllPlayers: () => void;
 }
 
 const PlayerList: React.FC<PlayerListProps> = ({
@@ -16,6 +17,7 @@ const PlayerList: React.FC<PlayerListProps> = ({
   onSelectPlayer,
   onDeletePlayer,
   onDuplicatePlayer,
+  onRemoveAllPlayers,
 }) => {
   if (players.length === 0) {
     return (
@@ -36,6 +38,21 @@ const PlayerList: React.FC<PlayerListProps> = ({
         <h3 className="text-lg font-semibold text-slate-950 dark:text-slate-100">
           Players ({players.length})
         </h3>
+        <button
+          onClick={() => {
+            if (
+              window.confirm(
+                `Remove all ${players.length} players from this event? You can undo this with Ctrl+Z.`,
+              )
+            ) {
+              onRemoveAllPlayers();
+            }
+          }}
+          className="text-sm text-red-600 dark:text-red-400 hover:text-red-700 dark:hover:text-red-300 hover:underline transition-colors"
+          title="Remove all players"
+        >
+          Remove All
+        </button>
       </div>
 
       <div className="space-y-2 max-h-96 overflow-y-auto">

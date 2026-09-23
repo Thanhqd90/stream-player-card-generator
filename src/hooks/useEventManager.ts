@@ -181,6 +181,14 @@ export function useEventManager() {
     [event, selectedPlayerId, updateEvent],
   );
 
+  const removeAllPlayers = useCallback(() => {
+    if (!event || event.players.length === 0) return;
+
+    pushHistorySnapshot(event, true);
+    setEvent({ ...event, players: [], selectedPlayerId: undefined });
+    setSelectedPlayerId(null);
+  }, [event, pushHistorySnapshot]);
+
   const duplicatePlayer = useCallback(
     (player: Player) => {
       if (!event) return;
@@ -284,6 +292,7 @@ export function useEventManager() {
     addPlayer,
     updatePlayer,
     deletePlayer,
+    removeAllPlayers,
     duplicatePlayer,
     importPlayers,
     importPlayerPhotos,
